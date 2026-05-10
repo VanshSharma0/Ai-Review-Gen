@@ -155,8 +155,8 @@ export default function QRPage({ business, onBack, onPreview }: QRPageProps) {
         {/* QR Card */}
         <div
           style={{
-            background: "#111",
-            border: "1px solid #222",
+            background: "#ffffff",
+            border: "1px solid var(--border)",
             borderRadius: 24,
             padding: "40px",
             display: "flex",

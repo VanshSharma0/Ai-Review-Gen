@@ -4,7 +4,7 @@ import type { Business, Review } from "@/lib/data";
 export const MURTI_SLUG = "murti";
 
 /**
- * Page-ready batches (page 1 = index 0). Mix simple lines + Hindi; at most one staff/owner name per review.
+ * Page-ready batches (page 1 = index 0). English only; at most one staff/owner name per review.
  */
 export const MURTI_REVIEW_BATCHES: Review[][] = [
   [
@@ -19,9 +19,9 @@ export const MURTI_REVIEW_BATCHES: Review[][] = [
       avatar: "V",
     },
     {
-      text: "बहुत अच्छा स्टाफ है। तिंकु भाई ने साइज़ तुरंत बदल दिया।",
-      name: "राजेश के.",
-      avatar: "र",
+      text: "Very helpful staff. Tinku changed the ring size for us right away.",
+      name: "Rajesh K.",
+      avatar: "R",
     },
     {
       text: "Neeraj handled billing calmly and did not rush us.",
@@ -41,9 +41,9 @@ export const MURTI_REVIEW_BATCHES: Review[][] = [
       avatar: "S",
     },
     {
-      text: "गोल्ड का रेट बोर्ड पर साफ़ लिखा है। स्टाफ़ विनम्र है।",
-      name: "स्नेहा श.",
-      avatar: "स",
+      text: "Gold rates are clearly posted on the board. Staff is courteous.",
+      name: "Sneha S.",
+      avatar: "S",
     },
     {
       text: "Musharaf showed many ring options and was patient throughout.",
@@ -81,11 +81,11 @@ export const MURTI_REVIEW_BATCHES: Review[][] = [
     },
     {
       text: "Vansh sir explained hallmark in simple words.",
-      name: "गीता वर्मा",
-      avatar: "ग",
+      name: "Geeta V.",
+      avatar: "G",
     },
     {
-      text: "अंजलि जी ने डायमंड के बारे में धैर्य से समझाया।",
+      text: "Anjali patiently walked us through the diamond options.",
       name: "Suresh H.",
       avatar: "S",
     },
@@ -108,8 +108,8 @@ export const MURTI_REVIEW_BATCHES: Review[][] = [
     },
     {
       text: "Making charges felt fair compared to other shops nearby.",
-      name: "अमित पि.",
-      avatar: "अ",
+      name: "Amit P.",
+      avatar: "A",
     },
     {
       text: "Harish ji remembered us from last time. A thoughtful touch.",
@@ -124,9 +124,9 @@ export const MURTI_REVIEW_BATCHES: Review[][] = [
       avatar: "M",
     },
     {
-      text: "नीरज ने डिलीवरी के बारे में फोन पर अच्छे से अपडेट दिया।",
-      name: "लता एस.",
-      avatar: "ल",
+      text: "Neeraj called with clear updates on my order delivery.",
+      name: "Lata S.",
+      avatar: "L",
     },
     {
       text: "Recommended.",

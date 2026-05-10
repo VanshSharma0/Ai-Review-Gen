@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Business } from "@/lib/data";
 import { resolveBusinessBySlug } from "@/lib/fetch-business-by-slug";
@@ -9,7 +9,6 @@ import ReviewPage from "@/components/ReviewPage";
 
 export default function ReviewDeepLinkPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = typeof params.slug === "string" ? params.slug : "";
   const [business, setBusiness] = useState<Business | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
@@ -72,12 +71,7 @@ export default function ReviewDeepLinkPage() {
         </div>
       )}
       {status === "ready" && business && (
-        <ReviewPage
-          key={business.id}
-          business={business}
-          onBack={() => router.push("/")}
-          backLabel="← Back to search"
-        />
+        <ReviewPage key={business.id} business={business} />
       )}
     </main>
   );

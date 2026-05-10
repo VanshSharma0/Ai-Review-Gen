@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Review } from "@/lib/data";
 import { REVIEW_OWNER_NAMES, REVIEW_STAFF_NAMES } from "@/lib/review-personas";
+import { containsDevanagari } from "@/lib/review-language";
 
 function stripJsonFence(s: string): string {
   let t = s.trim();
@@ -44,6 +45,11 @@ function parseReviews(raw: unknown): Review[] {
       typeof o.avatar === "string" ? o.avatar.trim().slice(0, 1) : "";
     if (!avatar) avatar = name.charAt(0).toUpperCase() || "?";
     if (text.length > 380) continue;
+    if (containsDevanagari(text) || containsDevanagari(name) || containsDevanagari(avatar)) {
+      continue;
+    }
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    if (wordCount < 3) continue;
     if (text) out.push({ text, name, avatar });
   }
   return out.slice(0, 6);
@@ -93,8 +99,8 @@ These four reviews must feel NEW compared to any generic earlier set: vary angle
 Personalisation (when naming someone):
 - OWNERS: ${REVIEW_OWNER_NAMES.join(", ")}. STAFF: ${REVIEW_STAFF_NAMES.join(", ")}.
 - At most ONE person's first name per review — never two names in the same review. Many reviews should name nobody.
-- Prefer SHORT blurbs: include 2–3 reviews that are a single short sentence (under ~90 characters); keep the remaining 1–2 still concise (ideally under ~200 characters each unless Hindi needs an extra few words).
-- About half the set may use Hindi or Hinglish where it fits; keep wording natural.
+- Prefer SHORT blurbs: include 2–3 reviews that are a single short sentence (under ~90 characters); keep the remaining 1–2 still concise (ideally under ~200 characters).
+- English only. Do NOT use Hindi/Hinglish words or non-Latin scripts.
 `
     : "";
 
@@ -108,10 +114,11 @@ Return ONLY valid JSON (no markdown): {"reviews":[{"text":"...","name":"First L.
 Generate exactly 4 NEW positive Google-review-style blurbs a customer might paste.
 Requirements:
 - Keep each review COMPACT: casual mobile-review length — avoid long paragraphs. Typical blurbs ~1–2 short sentences; several should be very brief one-liners.
+- Minimum length: every review must be at least 3 words (no one-word or two-word reviews).
 - Use correct grammar and spelling throughout. Casual tone is fine; avoid stuffing typos or broken English.
 - SEO: At least ONE review should naturally mention locality or value in a tight phrase (e.g. area + affordable rates), without long filler — still human and short.
 - NO em dashes. Vary length across the four but bias shorter overall.
-- Reviewer "name" field: plausible customer names (Hindi script OK for Hindi reviews); avatar = first meaningful character of the display name.
+- Reviewer "name" field: plausible customer names using Latin letters only (A–Z); avatar = first Latin letter of the display name. No Devanagari or Hindi script anywhere in the JSON.
 
 JSON only.`;
 

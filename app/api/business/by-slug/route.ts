@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBusinessFromMongoBySlug } from "@/lib/mongodb-business";
+import { getMergedBusinessForSlug } from "@/lib/merge-business";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("slug")?.trim();
@@ -7,14 +9,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing slug" }, { status: 400 });
   }
 
-  if (!process.env.MONGODB_URI?.trim()) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const business = await getBusinessFromMongoBySlug(slug);
+  const business = await getMergedBusinessForSlug(slug);
   if (!business) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ business });
+  return NextResponse.json(
+    { business },
+    {
+      headers: {
+        "Cache-Control": "private, no-store, must-revalidate",
+      },
+    }
+  );
 }

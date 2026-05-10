@@ -189,8 +189,8 @@ export default function SearchPage({ onSelect }: SearchPageProps) {
           <div
             style={{
               position: "relative",
-              background: "#161616",
-              border: `1.5px solid ${focused ? "var(--gold)" : "#2a2a2a"}`,
+              background: "#ffffff",
+              border: `1.5px solid ${focused ? "var(--gold)" : "var(--border)"}`,
               borderRadius: 16,
               padding: 4,
               transition: "border-color 0.2s",
@@ -249,8 +249,8 @@ export default function SearchPage({ onSelect }: SearchPageProps) {
                 top: "50%",
                 transform: "translateY(-50%)",
                 background:
-                  trimmedQuery.length === 0 || results.length === 0 ? "#555" : "var(--gold)",
-                color: "#0D0D0D",
+                  trimmedQuery.length === 0 || results.length === 0 ? "#D1D5DB" : "var(--gold)",
+                color: "#111827",
                 border: "none",
                 borderRadius: 10,
                 padding: "11px 22px",

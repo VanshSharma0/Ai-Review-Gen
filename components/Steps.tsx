@@ -34,9 +34,9 @@ export default function Steps({ current }: StepsProps) {
                   placeItems: "center",
                   fontSize: 13,
                   fontWeight: 700,
-                  border: done || active ? "2px solid var(--gold)" : "2px solid #333",
+                  border: done || active ? "2px solid var(--gold)" : "2px solid #d1d5db",
                   background: done ? "var(--gold)" : "var(--dark)",
-                  color: done ? "var(--dark)" : active ? "var(--gold)" : "#555",
+                  color: done ? "#111827" : active ? "var(--gold)" : "#9ca3af",
                   transition: "all 0.3s ease",
                 }}
               >
@@ -48,7 +48,7 @@ export default function Steps({ current }: StepsProps) {
                   fontWeight: 600,
                   textTransform: "uppercase",
                   letterSpacing: "0.8px",
-                  color: done || active ? "var(--gold)" : "#555",
+                  color: done || active ? "var(--gold)" : "#9ca3af",
                   whiteSpace: "nowrap",
                   transition: "color 0.3s ease",
                 }}
@@ -61,7 +61,7 @@ export default function Steps({ current }: StepsProps) {
                 style={{
                   flex: 1,
                   height: 2,
-                  background: done ? "var(--gold)" : "#2a2a2a",
+                  background: done ? "var(--gold)" : "#e5e7eb",
                   margin: "0 6px",
                   marginBottom: 22,
                   transition: "background 0.3s ease",

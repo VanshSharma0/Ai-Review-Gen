@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Business, Review } from "@/lib/data";
+import { pickRandomReviews } from "@/lib/random-reviews";
+import { reviewPoolForStaticBusiness } from "@/lib/review-pool";
 import Steps from "./Steps";
 
 interface ReviewPageProps {
   business: Business;
-  onBack: () => void;
-  /** Shown on the back control (e.g. deep links use “Back to search”). */
-  backLabel?: string;
 }
 
 function Toast({ message, visible }: { message: string; visible: boolean }) {
@@ -19,7 +18,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
         bottom: 32,
         left: "50%",
         transform: `translateX(-50%) translateY(${visible ? 0 : "80px"})`,
-        background: "#1a1a1a",
+        background: "#ffffff",
         border: "1px solid var(--gold)",
         color: "var(--text)",
         padding: "13px 24px",
@@ -35,7 +34,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
         whiteSpace: "normal",
         textAlign: "center",
         lineHeight: 1.45,
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
       }}
     >
       ✓ {message}
@@ -43,11 +42,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
   );
 }
 
-export default function ReviewPage({
-  business,
-  onBack,
-  backLabel = "← Back to QR Code",
-}: ReviewPageProps) {
+export default function ReviewPage({ business }: ReviewPageProps) {
   const partnerListing = Boolean(business.qrSlug);
 
   const [pager, setPager] = useState<{ pages: Review[][]; index: number }>(() => ({
@@ -61,7 +56,51 @@ export default function ReviewPage({
   const [toastVisible, setToastVisible] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
+  /** Bumps when local AI generation completes so stale merge fetches do not overwrite. */
+  const reviewsEpochRef = useRef(0);
+
   const displayedReviews = pager.pages[pager.index] ?? [];
+
+  function localFallbackReviews(): Review[] {
+    const pool = reviewPoolForStaticBusiness(business);
+    const source = pool.length ? pool : [...business.reviews];
+    return pickRandomReviews(source, 4);
+  }
+
+  useEffect(() => {
+    const slug = business.qrSlug?.trim() || business.id;
+    if (!slug) return;
+    const epochAtFetch = reviewsEpochRef.current;
+    let cancelled = false;
+    void (async () => {
+      function applyLocalRandomSample() {
+        const picked = localFallbackReviews();
+        if (picked.length && reviewsEpochRef.current === epochAtFetch) {
+          setPager({ pages: [picked], index: 0 });
+        }
+      }
+
+      try {
+        const res = await fetch(
+          `/api/business/by-slug?slug=${encodeURIComponent(slug)}`,
+          { cache: "no-store" }
+        );
+        if (!res.ok || cancelled) {
+          if (!cancelled) applyLocalRandomSample();
+          return;
+        }
+        const data = (await res.json()) as { business?: Business };
+        if (cancelled || !data.business) return;
+        if (reviewsEpochRef.current !== epochAtFetch) return;
+        setPager({ pages: [[...data.business.reviews]], index: 0 });
+      } catch {
+        if (!cancelled) applyLocalRandomSample();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [business.qrSlug, business.id]);
 
   const showToast = useCallback((msg: string) => {
     setToastMsg(msg);
@@ -83,6 +122,33 @@ export default function ReviewPage({
       document.execCommand("copy");
       document.body.removeChild(ta);
       showToast("Copied — paste in Google Reviews.");
+    }
+  }
+
+  async function persistReviewsToMongo(reviews: Review[]) {
+    const slug = business.qrSlug?.trim() || business.id;
+    try {
+      const res = await fetch("/api/business/save-reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          qrSlug: slug,
+          reviews,
+          snapshot: {
+            name: business.name,
+            type: business.type,
+            icon: business.icon,
+            rating: business.rating,
+            googleUrl: business.googleUrl,
+            ...(business.location ? { location: business.location } : {}),
+          },
+        }),
+      });
+      if (!res.ok) {
+        console.warn("save-reviews:", await res.text());
+      }
+    } catch (e) {
+      console.warn("save-reviews failed", e);
     }
   }
 
@@ -108,10 +174,19 @@ export default function ReviewPage({
       }
       const next = data.reviews ?? [];
       if (next.length === 0) throw new Error("Empty response");
+      reviewsEpochRef.current += 1;
       setPager({ pages: [next], index: 0 });
       showToast("New reviews ready — copy any line you like.");
+      void persistReviewsToMongo(next);
     } catch {
-      showToast("Could not generate — check API key or try again.");
+      const fallback = localFallbackReviews();
+      if (fallback.length > 0) {
+        reviewsEpochRef.current += 1;
+        setPager({ pages: [fallback], index: 0 });
+        showToast("Claude unavailable — showing fallback reviews.");
+      } else {
+        showToast("Could not generate — check API key or try again.");
+      }
     } finally {
       setGenLoading(false);
     }
@@ -126,34 +201,7 @@ export default function ReviewPage({
       <Toast message={toastMsg} visible={toastVisible} />
 
       <div className="animate-fade-up">
-        <div style={{ maxWidth: 620, margin: "0 auto", padding: "0 20px 80px" }}>
-          <button
-            type="button"
-            onClick={onBack}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--muted)",
-              cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              marginBottom: 20,
-              padding: 0,
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.color = "var(--text)")
-            }
-            onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.color = "var(--muted)")
-            }
-          >
-            {backLabel}
-          </button>
-
+        <div style={{ maxWidth: 620, margin: "0 auto", padding: "0 0 80px" }}>
           <div
             style={{
               background: "rgba(66,133,244,0.06)",
@@ -226,7 +274,7 @@ export default function ReviewPage({
             Open Google Reviews →
           </button>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
             {displayedReviews.map((review, i) => {
               const isHovered = hoveredIdx === i;
               return (
@@ -235,10 +283,10 @@ export default function ReviewPage({
                   onMouseEnter={() => setHoveredIdx(i)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   style={{
-                    background: "#111",
-                    border: `1.5px solid ${isHovered ? "rgba(201,168,76,0.35)" : "#222"}`,
+                    background: "#ffffff",
+                    border: `1.5px solid ${isHovered ? "rgba(201,168,76,0.45)" : "#e5e7eb"}`,
                     borderRadius: 16,
-                    padding: "18px 18px 52px 18px",
+                    padding: "14px 14px 32px 14px",
                     position: "relative",
                     transition: "border-color 0.2s, transform 0.15s",
                     transform: isHovered ? "translateY(-1px)" : "none",
@@ -248,15 +296,23 @@ export default function ReviewPage({
                     style={{
                       fontSize: 15,
                       lineHeight: 1.7,
-                      color: "#ddd",
-                      marginBottom: 14,
+                      color: "var(--text)",
+                      marginBottom: 10,
                       paddingRight: 8,
                     }}
                   >
                     &quot;{review.text}&quot;
                   </p>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      marginBottom: 0,
+                      paddingBottom: 0,
+                    }}
+                  >
                     <div
                       style={{
                         width: 32,
@@ -273,7 +329,7 @@ export default function ReviewPage({
                     >
                       {review.avatar}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#bbb" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>
                       {review.name}
                     </div>
                   </div>
@@ -288,7 +344,7 @@ export default function ReviewPage({
                     }}
                     style={{
                       position: "absolute",
-                      bottom: 14,
+                      bottom: 4,
                       right: 14,
                       width: 40,
                       height: 40,
@@ -323,8 +379,8 @@ export default function ReviewPage({
           {displayedReviews.length === 0 && (
             <div
               style={{
-                background: "#111",
-                border: "1px solid #222",
+                background: "#ffffff",
+                border: "1px solid var(--border)",
                 borderRadius: 14,
                 padding: "20px",
                 marginBottom: 24,

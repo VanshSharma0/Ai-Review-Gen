@@ -1,4 +1,5 @@
 import type { Business, Review } from "@/lib/data";
+import { filterReviewsNoDevanagari } from "@/lib/review-language";
 
 function isReview(x: unknown): x is Review {
   if (!x || typeof x !== "object") return false;
@@ -54,7 +55,9 @@ export function decodeBusinessSnapshot(encoded: string): Business | null {
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const json = new TextDecoder().decode(bytes);
     const parsed: unknown = JSON.parse(json);
-    return isBusiness(parsed) ? parsed : null;
+    if (!isBusiness(parsed)) return null;
+    const b = parsed as Business;
+    return { ...b, reviews: filterReviewsNoDevanagari(b.reviews) };
   } catch {
     return null;
   }

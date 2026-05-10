@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { randomUUID } from "crypto";
 import type { Business, Review } from "@/lib/data";
+import { containsDevanagari } from "@/lib/review-language";
 
 function stripJsonFence(s: string): string {
   let t = s.trim();
@@ -29,6 +30,13 @@ function parseReviews(raw: unknown): Review[] {
       typeof o.avatar === "string" ? o.avatar.trim().slice(0, 1) : "";
     if (!avatar) avatar = name.charAt(0).toUpperCase() || "?";
     if (text.length > 280) continue;
+    if (
+      containsDevanagari(text) ||
+      containsDevanagari(name) ||
+      containsDevanagari(avatar)
+    ) {
+      continue;
+    }
     if (text) out.push({ text, name, avatar });
   }
   return out.slice(0, 4);
@@ -85,7 +93,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) with exactly this sha
 
 Rules:
 - Return between 4 and 6 businesses that plausibly match the query (names + implied city/region if inferable).
-- Each business must have exactly 3 reviews: believable positive templates (not quotes from real named individuals).
+- Each business must have exactly 3 reviews: believable positive templates (not quotes from real named individuals). All review text and reviewer names must be in English only (Latin script). No Hindi or other non-Latin scripts.
 - googleUrl: proper Google Maps search URL including business name + location hints when possible.
 - rating: string between "4.2" and "5.0".
 - Keep JSON compact so total output stays reasonable.

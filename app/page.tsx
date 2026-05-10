@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { decodeBusinessSnapshot } from "@/lib/business-snapshot";
 import { Business } from "@/lib/data";
-import { getBusinessBySlug } from "@/lib/static-businesses";
 import { resolveBusinessBySlug } from "@/lib/fetch-business-by-slug";
 import Header from "@/components/Header";
 import SearchPage from "@/components/SearchPage";
@@ -39,8 +38,7 @@ function HomeContent() {
       }
 
       if (bizParam) {
-        let resolved =
-          getBusinessBySlug(bizParam) ?? decodeBusinessSnapshot(bizParam);
+        let resolved = decodeBusinessSnapshot(bizParam);
         if (!resolved) {
           resolved = await resolveBusinessBySlug(bizParam);
         }
@@ -89,11 +87,7 @@ function HomeContent() {
         />
       )}
       {page === "review" && business && (
-        <ReviewPage
-          key={business.id}
-          business={business}
-          onBack={() => handleBack("qr")}
-        />
+        <ReviewPage key={business.id} business={business} />
       )}
     </main>
   );

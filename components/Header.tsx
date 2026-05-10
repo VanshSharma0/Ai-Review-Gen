@@ -8,10 +8,10 @@ export default function Header() {
         display: "flex",
         alignItems: "center",
         gap: "12px",
-        borderBottom: "1px solid #1e1e1e",
+        borderBottom: "1px solid var(--border)",
         position: "sticky",
         top: 0,
-        background: "rgba(13,13,13,0.92)",
+        background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(12px)",
         zIndex: 100,
       }}
