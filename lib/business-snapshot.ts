@@ -24,6 +24,13 @@ function isBusiness(x: unknown): x is Business {
     return false;
   }
   if (!Array.isArray(o.reviews) || !o.reviews.every(isReview)) return false;
+  if (
+    "location" in o &&
+    o.location !== undefined &&
+    typeof o.location !== "string"
+  ) {
+    return false;
+  }
   return o.googleUrl.startsWith("http");
 }
 

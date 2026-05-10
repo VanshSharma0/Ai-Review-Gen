@@ -9,7 +9,7 @@ export const MURTI_SLUG = "murti";
 export const MURTI_REVIEW_BATCHES: Review[][] = [
   [
     {
-      text: "Very good showroom. Clean and well lit.",
+      text: "Best jewellery showroom in Uttam Nagar, affordable rates and honest staff.",
       name: "Customer",
       avatar: "C",
     },
@@ -144,6 +144,7 @@ export const MURTI_REVIEW_BATCHES: Review[][] = [
 export const murtiJewellers: Business = {
   id: MURTI_SLUG,
   qrSlug: MURTI_SLUG,
+  location: "Uttam Nagar, Delhi",
   name: "Murti Jewellers",
   type: "Gold & Diamond Jewellery",
   icon: "💍",

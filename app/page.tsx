@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { decodeBusinessSnapshot } from "@/lib/business-snapshot";
 import { Business } from "@/lib/data";
 import { getBusinessBySlug } from "@/lib/static-businesses";
+import { resolveBusinessBySlug } from "@/lib/fetch-business-by-slug";
 import Header from "@/components/Header";
 import SearchPage from "@/components/SearchPage";
 import QRPage from "@/components/QRPage";
@@ -21,25 +22,43 @@ function HomeContent() {
     const slugOnly = searchParams.get("b")?.trim();
     const bizParam = searchParams.get("biz")?.trim();
 
-    let resolved: Business | null = null;
-    if (slugOnly) {
-      resolved = getBusinessBySlug(slugOnly);
-      if (!resolved) console.warn("Unknown review link (?b=).");
-    } else if (bizParam) {
-      resolved =
-        getBusinessBySlug(bizParam) ?? decodeBusinessSnapshot(bizParam);
-      if (!resolved) console.warn("Invalid QR payload (?biz=).");
+    let cancelled = false;
+
+    async function resolve() {
+      if (slugOnly) {
+        const resolved = await resolveBusinessBySlug(slugOnly);
+        if (cancelled) return;
+        if (!resolved) {
+          console.warn("Unknown review link (?b=).");
+          return;
+        }
+        setBusiness(resolved);
+        setPage("review");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      if (bizParam) {
+        let resolved =
+          getBusinessBySlug(bizParam) ?? decodeBusinessSnapshot(bizParam);
+        if (!resolved) {
+          resolved = await resolveBusinessBySlug(bizParam);
+        }
+        if (cancelled) return;
+        if (!resolved) {
+          console.warn("Invalid QR payload (?biz=).");
+          return;
+        }
+        setBusiness(resolved);
+        setPage("review");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
 
-    if (!resolved) return;
-
-    const openTimer = window.setTimeout(() => {
-      setBusiness(resolved);
-      setPage("review");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 0);
-
-    return () => clearTimeout(openTimer);
+    void resolve();
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   function handleSelectBusiness(biz: Business) {

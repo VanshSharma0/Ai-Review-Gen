@@ -9,6 +9,8 @@ export interface Business {
   id: string;
   /** When set, QR uses compact `/?b=slug` (recommended for print). */
   qrSlug?: string;
+  /** Area or neighbourhood for natural SEO-style phrases in generated reviews (e.g. "Uttam Nagar, Delhi"). */
+  location?: string;
   name: string;
   type: string;
   icon: string;

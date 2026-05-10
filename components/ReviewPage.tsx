@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Business, Review } from "@/lib/data";
-import { getReviewBatchesForBusiness } from "@/lib/static-businesses";
 import Steps from "./Steps";
 
 interface ReviewPageProps {
   business: Business;
   onBack: () => void;
+  /** Shown on the back control (e.g. deep links use “Back to search”). */
+  backLabel?: string;
 }
 
 function Toast({ message, visible }: { message: string; visible: boolean }) {
@@ -42,11 +43,12 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
   );
 }
 
-export default function ReviewPage({ business, onBack }: ReviewPageProps) {
+export default function ReviewPage({
+  business,
+  onBack,
+  backLabel = "← Back to QR Code",
+}: ReviewPageProps) {
   const partnerListing = Boolean(business.qrSlug);
-  const curated = useMemo(() => getReviewBatchesForBusiness(business), [business]);
-
-  const nextCuratedBatchIdxRef = useRef(1);
 
   const [pager, setPager] = useState<{ pages: Review[][]; index: number }>(() => ({
     pages: [[...business.reviews]],
@@ -84,23 +86,11 @@ export default function ReviewPage({ business, onBack }: ReviewPageProps) {
     }
   }
 
-  async function handleGenerateMore() {
-    if (curated && nextCuratedBatchIdxRef.current < curated.length) {
-      const idx = nextCuratedBatchIdxRef.current;
-      nextCuratedBatchIdxRef.current += 1;
-      const batch = curated[idx];
-      let pageNum = 1;
-      setPager((p) => {
-        const pages = [...p.pages, batch];
-        pageNum = pages.length;
-        return { pages, index: pages.length - 1 };
-      });
-      showToast(`Opened page ${pageNum}.`);
-      return;
-    }
-
+  /** Always calls Claude and replaces the visible reviews with a fresh set. */
+  async function handleNewAiReviews() {
     setGenLoading(true);
     try {
+      const variationNonce = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
       const res = await fetch("/api/business/more-reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,6 +98,8 @@ export default function ReviewPage({ business, onBack }: ReviewPageProps) {
           name: business.name,
           type: business.type,
           personalize: true,
+          ...(business.location ? { location: business.location } : {}),
+          variationNonce,
         }),
       });
       const data = (await res.json()) as { reviews?: Review[]; error?: string };
@@ -116,13 +108,8 @@ export default function ReviewPage({ business, onBack }: ReviewPageProps) {
       }
       const next = data.reviews ?? [];
       if (next.length === 0) throw new Error("Empty response");
-      let pageNum = 1;
-      setPager((p) => {
-        const pages = [...p.pages, next];
-        pageNum = pages.length;
-        return { pages, index: pages.length - 1 };
-      });
-      showToast(`Opened page ${pageNum}.`);
+      setPager({ pages: [next], index: 0 });
+      showToast("New reviews ready — copy any line you like.");
     } catch {
       showToast("Could not generate — check API key or try again.");
     } finally {
@@ -134,14 +121,12 @@ export default function ReviewPage({ business, onBack }: ReviewPageProps) {
     window.open(business.googleUrl, "_blank");
   }
 
-  const pageCount = pager.pages.length;
-
   return (
     <>
       <Toast message={toastMsg} visible={toastVisible} />
 
       <div className="animate-fade-up">
-        <div style={{ maxWidth: 620, margin: "0 auto", padding: "40px 20px 80px" }}>
+        <div style={{ maxWidth: 620, margin: "0 auto", padding: "0 20px 80px" }}>
           <button
             type="button"
             onClick={onBack}
@@ -155,7 +140,7 @@ export default function ReviewPage({ business, onBack }: ReviewPageProps) {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              marginBottom: 28,
+              marginBottom: 20,
               padding: 0,
               transition: "color 0.2s",
             }}
@@ -166,68 +151,80 @@ export default function ReviewPage({ business, onBack }: ReviewPageProps) {
               ((e.currentTarget as HTMLButtonElement).style.color = "var(--muted)")
             }
           >
-            ← Back to QR Code
+            {backLabel}
           </button>
 
-          <div style={{ textAlign: "center", marginBottom: 32 }}>
-            <div
+          <div
+            style={{
+              background: "rgba(66,133,244,0.06)",
+              border: "1px solid rgba(66,133,244,0.2)",
+              borderRadius: 14,
+              padding: "16px 20px",
+              marginBottom: 24,
+              fontSize: 14,
+              color: "#aac",
+              lineHeight: 1.55,
+            }}
+          >
+            When you&apos;re ready, open{" "}
+            <strong style={{ color: "var(--text)" }}>
+              {partnerListing ? "Google Reviews" : "Google"}
+            </strong>{" "}
+            and paste what you copied.
+          </div>
+
+          <button
+            type="button"
+            onClick={openGoogle}
+            style={{
+              width: "100%",
+              background: "#4285F4",
+              color: "white",
+              border: "none",
+              borderRadius: 14,
+              padding: "16px 24px",
+              fontFamily: "'DM Sans', sans-serif",
+              fontWeight: 700,
+              fontSize: 16,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              marginBottom: 28,
+              transition: "background 0.2s, transform 0.15s, box-shadow 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLButtonElement;
+              el.style.background = "#3367D6";
+              el.style.transform = "translateY(-1px)";
+              el.style.boxShadow = "0 10px 28px rgba(66,133,244,0.35)";
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLButtonElement;
+              el.style.background = "#4285F4";
+              el.style.transform = "none";
+              el.style.boxShadow = "none";
+            }}
+          >
+            <span
               style={{
-                width: 76,
-                height: 76,
-                borderRadius: 22,
-                background: "rgba(201,168,76,0.1)",
-                border: "1px solid rgba(201,168,76,0.25)",
+                width: 24,
+                height: 24,
+                background: "white",
+                borderRadius: 4,
                 display: "grid",
                 placeItems: "center",
-                fontSize: 38,
-                margin: "0 auto 20px",
+                color: "#4285F4",
+                fontWeight: 900,
+                fontSize: 15,
+                flexShrink: 0,
               }}
             >
-              {business.icon}
-            </div>
-
-            <div
-              style={{
-                display: "inline-block",
-                background: "rgba(201,168,76,0.1)",
-                border: "1px solid rgba(201,168,76,0.25)",
-                color: "var(--gold)",
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                padding: "6px 16px",
-                borderRadius: 100,
-                marginBottom: 16,
-              }}
-            >
-              You&apos;re helping a local business!
-            </div>
-
-            <h2
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "clamp(24px, 4vw, 34px)",
-                fontWeight: 700,
-                marginBottom: 10,
-              }}
-            >
-              {business.name}
-            </h2>
-
-            {business.rating !== "—" && (
-              <div
-                style={{
-                  fontSize: 22,
-                  letterSpacing: 2,
-                  color: "var(--gold)",
-                  marginBottom: 4,
-                }}
-              >
-                {business.rating} ★
-              </div>
-            )}
-          </div>
+              G
+            </span>
+            Open Google Reviews →
+          </button>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
             {displayedReviews.map((review, i) => {
@@ -337,171 +334,45 @@ export default function ReviewPage({ business, onBack }: ReviewPageProps) {
                 textAlign: "center",
               }}
             >
-              No samples here — use Google Reviews below to write your own.
+              No samples here — tap Open Google Reviews above to write your own.
             </div>
           )}
-
-          {pageCount > 1 && (
-            <div
-              style={{
-                marginBottom: 16,
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-              role="navigation"
-              aria-label="Review pages"
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--muted)",
-                  marginRight: 4,
-                }}
-              >
-                Pages
-              </span>
-              {pager.pages.map((_, pi) => {
-                const active = pi === pager.index;
-                return (
-                  <button
-                    key={pi}
-                    type="button"
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => setPager((p) => ({ ...p, index: pi }))}
-                    style={{
-                      minWidth: 40,
-                      height: 40,
-                      padding: "0 12px",
-                      borderRadius: 12,
-                      border: active ? "1px solid var(--gold)" : "1px solid #333",
-                      background: active ? "rgba(201,168,76,0.15)" : "#151515",
-                      color: active ? "var(--gold)" : "var(--muted)",
-                      fontFamily: "'DM Sans', sans-serif",
-                      fontWeight: 700,
-                      fontSize: 15,
-                      cursor: "pointer",
-                      transition: "border-color 0.15s, background 0.15s, color 0.15s",
-                    }}
-                  >
-                    {pi + 1}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {displayedReviews.length > 0 && (
-            <button
-              type="button"
-              onClick={() => void handleGenerateMore()}
-              disabled={genLoading}
-              style={{
-                width: "100%",
-                background: "transparent",
-                color: "var(--gold)",
-                border: "1px solid rgba(201,168,76,0.45)",
-                borderRadius: 14,
-                padding: "14px 22px",
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 700,
-                fontSize: 15,
-                cursor: genLoading ? "wait" : "pointer",
-                marginBottom: 28,
-                opacity: genLoading ? 0.75 : 1,
-                transition: "background 0.2s, border-color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                if (genLoading) return;
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "rgba(201,168,76,0.08)";
-                el.style.borderColor = "var(--gold)";
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "transparent";
-                el.style.borderColor = "rgba(201,168,76,0.45)";
-              }}
-            >
-              {genLoading ? "Generating…" : "Generate more reviews"}
-            </button>
-          )}
-
-          <div
-            style={{
-              background: "rgba(66,133,244,0.06)",
-              border: "1px solid rgba(66,133,244,0.2)",
-              borderRadius: 14,
-              padding: "16px 20px",
-              marginBottom: 16,
-              fontSize: 14,
-              color: "#aac",
-              lineHeight: 1.55,
-            }}
-          >
-            When you&apos;re ready, open{" "}
-            <strong style={{ color: "var(--text)" }}>
-              {partnerListing ? "Google Reviews" : "Google"}
-            </strong>{" "}
-            and paste what you copied.
-          </div>
 
           <button
             type="button"
-            onClick={openGoogle}
+            onClick={() => void handleNewAiReviews()}
+            disabled={genLoading}
             style={{
               width: "100%",
-              background: "#4285F4",
-              color: "white",
-              border: "none",
+              background: "rgba(201,168,76,0.14)",
+              color: "var(--gold)",
+              border: "1px solid rgba(201,168,76,0.55)",
               borderRadius: 14,
-              padding: "16px 24px",
+              padding: "14px 22px",
               fontFamily: "'DM Sans', sans-serif",
               fontWeight: 700,
-              fontSize: 16,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              transition: "background 0.2s, transform 0.15s, box-shadow 0.2s",
+              fontSize: 15,
+              cursor: genLoading ? "wait" : "pointer",
+              marginTop: 8,
+              marginBottom: 0,
+              opacity: genLoading ? 0.75 : 1,
+              transition: "background 0.2s, border-color 0.2s, transform 0.12s",
             }}
             onMouseEnter={(e) => {
+              if (genLoading) return;
               const el = e.currentTarget as HTMLButtonElement;
-              el.style.background = "#3367D6";
-              el.style.transform = "translateY(-1px)";
-              el.style.boxShadow = "0 10px 28px rgba(66,133,244,0.35)";
+              el.style.background = "rgba(201,168,76,0.22)";
+              el.style.borderColor = "var(--gold)";
             }}
             onMouseLeave={(e) => {
               const el = e.currentTarget as HTMLButtonElement;
-              el.style.background = "#4285F4";
-              el.style.transform = "none";
-              el.style.boxShadow = "none";
+              el.style.background = "rgba(201,168,76,0.14)";
+              el.style.borderColor = "rgba(201,168,76,0.55)";
             }}
           >
-            <span
-              style={{
-                width: 24,
-                height: 24,
-                background: "white",
-                borderRadius: 4,
-                display: "grid",
-                placeItems: "center",
-                color: "#4285F4",
-                fontWeight: 900,
-                fontSize: 15,
-                flexShrink: 0,
-              }}
-            >
-              G
-            </span>
-            Open Google Reviews →
+            {genLoading ? "Generating with Claude…" : "New AI reviews"}
           </button>
+
         </div>
 
         <Steps current={3} />
