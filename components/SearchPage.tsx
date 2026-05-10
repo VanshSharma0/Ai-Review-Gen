@@ -124,7 +124,7 @@ export default function SearchPage({ onSelect }: SearchPageProps) {
         style={{
           maxWidth: 700,
           margin: "0 auto",
-          padding: "72px 24px 48px",
+          padding: "72px 0 48px",
           textAlign: "center",
         }}
       >
@@ -482,7 +482,7 @@ export default function SearchPage({ onSelect }: SearchPageProps) {
         style={{
           maxWidth: 760,
           margin: "64px auto 0",
-          padding: "0 24px 80px",
+          padding: "0 0 80px",
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 16,

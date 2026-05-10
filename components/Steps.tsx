@@ -15,7 +15,7 @@ export default function Steps({ current }: StepsProps) {
         justifyContent: "center",
         maxWidth: 420,
         margin: "40px auto 0",
-        padding: "0 24px",
+        padding: "0",
       }}
     >
       {steps.map((label, i) => {

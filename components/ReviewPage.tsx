@@ -274,7 +274,16 @@ export default function ReviewPage({ business }: ReviewPageProps) {
             Open Google Reviews →
           </button>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              marginBottom: 12,
+              paddingLeft: "clamp(8px, 3vw, 16px)",
+              paddingRight: "clamp(8px, 3vw, 16px)",
+            }}
+          >
             {displayedReviews.map((review, i) => {
               const isHovered = hoveredIdx === i;
               return (

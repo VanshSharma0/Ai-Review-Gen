@@ -101,7 +101,7 @@ export default function QRPage({ business, onBack, onPreview }: QRPageProps) {
 
   return (
     <div className="animate-fade-up">
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 0" }}>
         {/* Back button */}
         <button
           onClick={onBack}

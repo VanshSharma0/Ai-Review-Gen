@@ -45,7 +45,7 @@ export default function ReviewDeepLinkPage() {
           style={{
             maxWidth: 620,
             margin: "0 auto",
-            padding: "48px 20px",
+            padding: "48px 0",
             color: "var(--muted)",
             textAlign: "center",
             fontFamily: "'DM Sans', sans-serif",
@@ -59,7 +59,7 @@ export default function ReviewDeepLinkPage() {
           style={{
             maxWidth: 620,
             margin: "0 auto",
-            padding: "48px 20px",
+            padding: "48px 0",
             color: "var(--muted)",
             textAlign: "center",
             fontFamily: "'DM Sans', sans-serif",
